@@ -49,6 +49,7 @@ services:
       - DD_AGENT_HOST=datadog        # Nome do serviço do agente no seu compose
       - DD_SERVICE=petclinic   # Nome que aparecerá no Service Catalog
       - DD_ENV=dev
+      - DD_VERSION=1.0.0
       - DD_LOGS_INJECTION=true       # Liga logs com traces
       #- DD_PROFILING_ENABLED=true    # Opcional: profiling de performance
     depends_on:
