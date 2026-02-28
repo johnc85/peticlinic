@@ -1,8 +1,22 @@
 services:
+  datadog:
+    container_name: dd-agent
+    image: gcr.io/datadoghq/agent:7
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_SITE=${DD_SITE}
+      - DD_APM_ENABLED=true
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+
   mysql:
     image: mysql:9.5
-    # Força o Docker a usar a plataforma correta se houver conflito
-    platform: linux/arm64 
+    container_name: mysql-db
+    platform: linux/arm64
     environment:
       - MYSQL_USER=petclinic
       - MYSQL_PASSWORD=petclinic
@@ -10,22 +24,24 @@ services:
       - MYSQL_DATABASE=petclinic
     ports:
       - "3306:3306"
+    # Este bloco é vital: diz ao Docker como saber se o MySQL está pronto
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "petclinic", "-ppetclinic"]
       interval: 5s
-      timeout: 5s
+      timeout: 2s
       retries: 10
 
   app:
     build: .
-    # No M1, construir localmente com build: . já gera uma imagem ARM64 nativa
+    container_name: petclinic-app
     ports:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=mysql
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/petclinic
+      # IMPORTANTE: O host aqui deve ser 'mysql' (nome do serviço acima)
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/petclinic?useSSL=false&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=petclinic
       - SPRING_DATASOURCE_PASSWORD=petclinic
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: service_healthy # Só sobe a App quando o healthcheck do MySQL passar
