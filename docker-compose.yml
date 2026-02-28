@@ -5,13 +5,17 @@ services:
     environment:
       - DD_API_KEY=${DD_API_KEY}
       - DD_SITE=${DD_SITE}
+      - DD_LOGS_ENABLED=true # Habilita a coleta de logs globalmente
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true # Coleta de todos os containers
       - DD_APM_ENABLED=true
-      - DD_LOGS_ENABLED=true
-      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_EXCLUDING_LOG_RESOURCES=logs # Evita coletar logs do próprio agente
+      - DD_APM_NON_LOCAL_TRAFFIC=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc/:/host/proc/:ro
       - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    labels:
+      com.datadoghq.ad.logs: '[]'
 
   mysql:
     image: mysql:9.5
@@ -42,6 +46,18 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/petclinic?useSSL=false&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=petclinic
       - SPRING_DATASOURCE_PASSWORD=petclinic
+      - DD_AGENT_HOST=datadog        # Nome do serviço do agente no seu compose
+      - DD_SERVICE=petclinic   # Nome que aparecerá no Service Catalog
+      - DD_ENV=dev
+      - DD_LOGS_INJECTION=true       # Liga logs com traces
+      #- DD_PROFILING_ENABLED=true    # Opcional: profiling de performance
     depends_on:
       mysql:
         condition: service_healthy # Só sobe a App quando o healthcheck do MySQL passar
+    labels:
+      com.datadoghq.ad.logs: '[{"source": "java", "service": "petclinic"}]'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
