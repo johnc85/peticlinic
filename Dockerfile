@@ -19,7 +19,15 @@ COPY --from=build /app/target/*.jar app.jar
 
 # Configura as variáveis do Java para usar o agente
 
-ENV JAVA_OPTS="-javaagent:/app/dd-java-agent.jar"
+# ENV JAVA_OPTS="-javaagent:/app/dd-java-agent.jar"
+
+# ... (estágios anteriores)
+
+# Use espaços para separar os argumentos. O sinal de '=' define a tag.
+ENV JAVA_OPTS="-javaagent:/app/dd-java-agent.jar \
+               -Ddd.trace.span.tags=custom.team:frontend,custom.framework:spring"
+
+# ... (resto do Dockerfile)
 
 EXPOSE 8080
 
